@@ -11,6 +11,7 @@ import java.io.OutputStreamWriter;
 import java.io.Reader;
 import java.io.Writer;
 import java.net.URLEncoder;
+import java.util.HashMap;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -19,21 +20,13 @@ import org.jsoup.select.Elements;
 
 public class GetJoke {
 
-	private static String url = "http://wap.jokeji.cn/JokeHtml/jt/2017052217012842.asp";
-	private static String preCreateUrl="http://wap.jokeji.cn/JokeHtml/mj/2017052217025310.asp";;
 	private static String loadNextUrl;
-	private static int nextPagerCount = 3;
-
-	public static void main(String[] args) {
-
-		// System.out.println("开始： " + startCount++);
-		loadContentHtml(url, preCreateUrl);
-	}
+	private static int nextPagerCount = 33;
 
 	// private static int count = 33;
 	private static int startCount = 1;
 
-	private static void loadContentHtml(String url, String preUrl) {
+	public static void loadContentHtml(String url, String preUrl) {
 		final String tempUrl = url;
 		final String tempPreUrl = preUrl;
 
@@ -115,7 +108,58 @@ public class GetJoke {
 				loadNext(url, nextUrl);
 
 			} else {
-				loadNext(url, nextUrl);
+				// 如果发现跳过，就重写上一页文件，把 其下一页的url 改为nextUrl 对应的文件
+
+				// 读 写 根据preUrl得到上一页 根据 url 得到对应链接，修改为 nextUrl
+
+				File resetFile = new File(UrlP.outPath + "\\"
+						+ preUrl.substring(preUrl.lastIndexOf("/") + 1)
+						+ ".html");
+
+				if (resetFile.exists()) {
+					try {
+						// LogUtils.d("路径--> " +
+						// FileUtils.getExternalStoragePath() +
+						// "exception.info");
+
+						BufferedReader in = new BufferedReader(
+								new InputStreamReader(new FileInputStream(
+										resetFile), "utf-8"));
+
+						StringBuffer stringBuffer = new StringBuffer();
+
+						String line = null;
+						while ((line = in.readLine()) != null) {
+							stringBuffer.append(line + "\n");
+						}
+						in.close();
+
+						Writer out = new BufferedWriter(new OutputStreamWriter(
+								new FileOutputStream(resetFile), "utf-8"));
+
+						if (stringBuffer.toString().length() > 0) {
+							String contentCode = stringBuffer.toString();
+
+							// 替换
+							contentCode = contentCode
+									.replace(
+											url.substring(url.lastIndexOf("/") + 1)
+													+ ".html",
+											nextUrl.substring(nextUrl
+													.lastIndexOf("/") + 1)
+													+ ".html");
+
+							out.write(contentCode);
+							out.close();
+						}
+
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+
+				}
+
+				loadNext(preUrl, nextUrl);// 不包含当前url
 			}
 
 		} catch (Exception e) {
@@ -139,49 +183,27 @@ public class GetJoke {
 			System.out.println(nextUrl);
 
 			// 修改当前文件
-			File fileNext = new File(
-					"D:\\WorkSpace\\test\\Jsoup\\src\\jsoup_test\\GetJoke.java");
-			
-			if(fileNext.exists()){
+			File fileNext = new File("C:\\joke\\joke_url.txt");
+
+			if (fileNext.exists()) {
 				try {
-				// LogUtils.d("路径--> " + FileUtils.getExternalStoragePath() +
-				// "exception.info");
-				
 
-				BufferedReader in = new BufferedReader(new InputStreamReader(
-						new FileInputStream(fileNext), "gbk"));
+					Writer out = new BufferedWriter(new OutputStreamWriter(
+							new FileOutputStream(fileNext), "gbk"));
 
-				StringBuffer stringBuffer = new StringBuffer();
-
-				String line = null;
-				while ((line = in.readLine()) != null) {
-					stringBuffer.append(line + "\n");
-				}
-				in.close();
-
-				
-				Writer out = new BufferedWriter(new OutputStreamWriter(
-						new FileOutputStream(fileNext), "gbk"));
-				
-				if (stringBuffer.toString().length() > 0) {
-					String contentCode = stringBuffer.toString();
-					String rStr = contentCode.substring(contentCode.indexOf("\"") + 1, contentCode.indexOf(".asp\";") + 4);
-					contentCode = contentCode.replace(rStr, nextUrl);
-					rStr = contentCode.substring(contentCode.indexOf("preCreateUrl=\"") + 14, contentCode.indexOf(".asp\";;") + 4);
-					contentCode = contentCode.replace(rStr, url);
-					System.out.println(rStr);
-					
-					
-					out.write(contentCode);
+					out.write("nextUrl ￥￥￥ " + nextUrl + "\npreUrl ￥￥￥ " + url
+							+ "\noutPath ￥￥￥ " + UrlP.outPath);
 					out.close();
+
+					// Runtime.getRuntime().exec(new String[] { "wscript",
+					// UrlP.vbsPath});
+
+				} catch (IOException e) {
+					e.printStackTrace();
 				}
 
-			} catch (IOException e) {
-				e.printStackTrace();
 			}
 
-			}
-			
 			System.exit(0);
 			return;
 		}
@@ -224,7 +246,8 @@ public class GetJoke {
 			// LogUtils.d("路径--> " + FileUtils.getExternalStoragePath() +
 			// "exception.info");
 			Writer out = new BufferedWriter(new OutputStreamWriter(
-					new FileOutputStream("F:\\test\\" + fileName), "UTF-8"));
+					new FileOutputStream(UrlP.outPath + "\\" + fileName),
+					"UTF-8"));
 			out.write(str);
 			out.close();
 		} catch (IOException e) {
