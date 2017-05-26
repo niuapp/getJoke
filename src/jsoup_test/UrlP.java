@@ -17,6 +17,8 @@ public class UrlP {
 	public static String preCreateUrl = "";;
 
 	public static String outPath = "";
+	public static String vbsPath = "";
+	public static String endFilePath = "";
 
 	public static void main(String[] args) {
 
@@ -47,13 +49,15 @@ public class UrlP {
 			}
 			in.close();
 			
-			if (urlMap.size() == 3) {
+			if (urlMap.size() == 5) {
 				
 				url = urlMap.get("nextUrl");
 				preCreateUrl = urlMap.get("preUrl");
 				outPath = urlMap.get("outPath");
+				vbsPath = urlMap.get("vbsPath");
+				endFilePath = urlMap.get("endFilePath");
 				
-				if (empty(url) && empty(preCreateUrl) && empty(outPath)) {
+				if (empty(url) && empty(preCreateUrl) && empty(outPath) && empty(vbsPath) && empty(endFilePath)) {
 					return true;
 				}
 			}

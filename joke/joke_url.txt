@@ -1,0 +1,5 @@
+nextUrl £¤£¤£¤ http://wap.jokeji.cn/JokeHtml/bxnn/20080925160600.asp
+preUrl £¤£¤£¤ http://wap.jokeji.cn/JokeHtml/bxnn/20080925160600.asp
+outPath £¤£¤£¤ F:\joke_html\
+vbsPath £¤£¤£¤ C:\joke\errorJoke.vbs
+endFilePath £¤£¤£¤ C:\joke\tvbs.txt

@@ -26,6 +26,9 @@ public class GetJoke {
 	// private static int count = 33;
 	private static int startCount = 1;
 
+	private static String skipUrl = "";
+	private static String skipNextUrl = "";
+
 	public static void loadContentHtml(String url, String preUrl) {
 		final String tempUrl = url;
 		final String tempPreUrl = preUrl;
@@ -33,7 +36,7 @@ public class GetJoke {
 		System.out.println("开始： " + startCount++);
 
 		try {
-			Thread.sleep(100);
+			Thread.sleep(150);
 
 			Document document = Jsoup.connect(
 					URLEncoder.encode(url, "utf-8").toLowerCase()
@@ -59,7 +62,7 @@ public class GetJoke {
 							.select("a").first().absUrl("href");
 				}
 			} else {
-				nextUrl = document.select("div.main>div.page_next>ul>li.next")
+				nextUrl = document.select("div.page_next>ul>li.next")
 						.select("a").first().absUrl("href");
 			}
 
@@ -67,6 +70,68 @@ public class GetJoke {
 
 			// 如果有图片，就跳过这页
 			if (!el.toString().contains("<img")) {
+
+				// 判断有没有跳过的页面，如果有 就重写其下一页信息，然后把跳过信息重置
+				if (skipUrl != null && skipUrl.length() > 0
+						&& skipNextUrl != null && skipNextUrl.length() > 0) {
+
+					preUrl = skipUrl;
+
+					// 如果发现跳过，就重写上一页文件，把 其下一页的url 改为nextUrl 对应的文件
+
+					// 读 写 根据preUrl得到上一页 根据 url 得到对应链接，修改为 nextUrl
+
+					File resetFile = new File(UrlP.outPath + "\\"
+							+ preUrl.substring(preUrl.lastIndexOf("/") + 1)
+							+ ".html");
+
+					if (resetFile.exists()) {
+						try {
+							// LogUtils.d("路径--> " +
+							// FileUtils.getExternalStoragePath() +
+							// "exception.info");
+
+							BufferedReader in = new BufferedReader(
+									new InputStreamReader(new FileInputStream(
+											resetFile), "utf-8"));
+
+							StringBuffer stringBuffer = new StringBuffer();
+
+							String line = null;
+							while ((line = in.readLine()) != null) {
+								stringBuffer.append(line + "\n");
+							}
+							in.close();
+
+							Writer out = new BufferedWriter(
+									new OutputStreamWriter(
+											new FileOutputStream(resetFile),
+											"utf-8"));
+
+							if (stringBuffer.toString().length() > 0) {
+								String contentCode = stringBuffer.toString();
+
+								// 替换
+								contentCode = contentCode.replace(
+										skipNextUrl.substring(skipNextUrl
+												.lastIndexOf("/") + 1)
+												+ ".html",
+										url.substring(url.lastIndexOf("/") + 1)
+												+ ".html");
+
+								out.write(contentCode);
+								out.close();
+							}
+
+						} catch (IOException e) {
+							e.printStackTrace();
+						}
+
+					}
+
+					skipUrl = "";// 重置
+					skipNextUrl = "";
+				}
 
 				el.attr("style", "padding:40px;");
 
@@ -108,55 +173,10 @@ public class GetJoke {
 				loadNext(url, nextUrl);
 
 			} else {
-				// 如果发现跳过，就重写上一页文件，把 其下一页的url 改为nextUrl 对应的文件
-
-				// 读 写 根据preUrl得到上一页 根据 url 得到对应链接，修改为 nextUrl
-
-				File resetFile = new File(UrlP.outPath + "\\"
-						+ preUrl.substring(preUrl.lastIndexOf("/") + 1)
-						+ ".html");
-
-				if (resetFile.exists()) {
-					try {
-						// LogUtils.d("路径--> " +
-						// FileUtils.getExternalStoragePath() +
-						// "exception.info");
-
-						BufferedReader in = new BufferedReader(
-								new InputStreamReader(new FileInputStream(
-										resetFile), "utf-8"));
-
-						StringBuffer stringBuffer = new StringBuffer();
-
-						String line = null;
-						while ((line = in.readLine()) != null) {
-							stringBuffer.append(line + "\n");
-						}
-						in.close();
-
-						Writer out = new BufferedWriter(new OutputStreamWriter(
-								new FileOutputStream(resetFile), "utf-8"));
-
-						if (stringBuffer.toString().length() > 0) {
-							String contentCode = stringBuffer.toString();
-
-							// 替换
-							contentCode = contentCode
-									.replace(
-											url.substring(url.lastIndexOf("/") + 1)
-													+ ".html",
-											nextUrl.substring(nextUrl
-													.lastIndexOf("/") + 1)
-													+ ".html");
-
-							out.write(contentCode);
-							out.close();
-						}
-
-					} catch (IOException e) {
-						e.printStackTrace();
-					}
-
+				// 如果需要跳过，就设置跳过标记，如果有标记，就直接跳过
+				if ("".equals(skipUrl) && "".equals(skipNextUrl)) {
+					skipUrl = preUrl;
+					skipNextUrl = url;
 				}
 
 				loadNext(preUrl, nextUrl);// 不包含当前url
@@ -167,6 +187,21 @@ public class GetJoke {
 			e.printStackTrace();
 			System.out.println("异常   要加载的： " + url);
 			System.out.println("异常   上一页的： " + preUrl);
+
+			// 通过更改 对应txt来停止脚本
+			try {
+				File endFile = new File(UrlP.endFilePath);
+				Writer out = new BufferedWriter(new OutputStreamWriter(
+						new FileOutputStream(endFile), "UTF-8"));
+				out.write("error_end");
+				out.close();
+
+				Runtime.getRuntime().exec(
+						new String[] { "wscript", UrlP.vbsPath });
+			} catch (IOException e1) {
+				e1.printStackTrace();
+			}
+
 			System.exit(0);
 			return;
 		}
@@ -191,8 +226,12 @@ public class GetJoke {
 					Writer out = new BufferedWriter(new OutputStreamWriter(
 							new FileOutputStream(fileNext), "gbk"));
 
-					out.write("nextUrl ￥￥￥ " + nextUrl + "\npreUrl ￥￥￥ " + url
-							+ "\noutPath ￥￥￥ " + UrlP.outPath);
+					out.write("nextUrl ￥￥￥ " + nextUrl 
+							+ "\npreUrl ￥￥￥ " + url
+							+ "\noutPath ￥￥￥ " + UrlP.outPath
+							+ "\nvbsPath ￥￥￥ " + UrlP.vbsPath
+							+ "\nendFilePath ￥￥￥ " + UrlP.endFilePath
+							);
 					out.close();
 
 					// Runtime.getRuntime().exec(new String[] { "wscript",
